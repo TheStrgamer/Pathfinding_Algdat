@@ -1,7 +1,6 @@
 #pragma once
 #include <iostream>
 #include <vector>
-#include <unordered_map>
 #include <queue>
 #include <limits>
 #include <algorithm>
@@ -11,7 +10,7 @@
 using namespace std;
 struct Result {
     vector<int> path;
-    long long time;
+    int time;
     int hours;
     int minutes;
     int seconds;
@@ -24,26 +23,25 @@ struct Result {
     }
 };
 
-auto compare = [](const pair<long long, int>& a, const pair<long long, int>& b) {
+auto compare = [](const pair<int, int>& a, const pair<int, int>& b) {
     return a.first > b.first;
 };
 
 inline Result dijkstraShortestPath(vector<Node>& nodes, const int fromNode, const int toNode) {
-    const auto setup_start = chrono::high_resolution_clock::now();
-
-    vector<long long> driveTimes(nodes.size(), numeric_limits<long long>::max());
-    vector<int> prev(nodes.size(), -1);
-    priority_queue<pair<long long, int>, vector<pair<long long, int>>, decltype(compare)> queue(compare);
-
-    cout << endl << "Calculating shortest path from " << fromNode << " to " << toNode << endl;
-    int nodesVisited = 0;
     const auto start = chrono::high_resolution_clock::now();
+
+    vector<int> driveTimes(nodes.size(), numeric_limits<int>::max());
+    vector<int> prev(nodes.size(), -1);
+    priority_queue<pair<int, int>, vector<pair<int, int>>, decltype(compare)> queue(compare);
+
+    //cout << endl << "Calculating shortest path from " << fromNode << " to " << toNode << endl;
+    int nodesVisited = 0;
 
     driveTimes[fromNode] = 0;
     queue.emplace(0, fromNode);
 
     while (!queue.empty()) {
-        const long long currentTime = queue.top().first;
+        const int currentTime = queue.top().first;
         const int currentNode = queue.top().second;
         nodesVisited++;
         queue.pop();
@@ -52,7 +50,7 @@ inline Result dijkstraShortestPath(vector<Node>& nodes, const int fromNode, cons
 
         for (const Edge& edge : nodes[currentNode].edges) {
             int neighbor = edge.endNode;
-            long long newTime = currentTime + edge.driveTime;
+            int newTime = currentTime + edge.driveTime;
 
             if (newTime < driveTimes[neighbor]) {
                 driveTimes[neighbor] = newTime;
@@ -74,10 +72,8 @@ inline Result dijkstraShortestPath(vector<Node>& nodes, const int fromNode, cons
 
     const auto end = chrono::high_resolution_clock::now();
     const auto duration = chrono::duration_cast<chrono::milliseconds>(end - start);
-    const auto setupDuration = chrono::duration_cast<chrono::milliseconds>(start - setup_start);
-    cout << "Setup time: " << setupDuration.count() << " milliseconds" << endl;
-    cout << "Time taken: " << duration.count() << " milliseconds" << endl;
-    cout << "Nodes visited: " << nodesVisited << endl;
+
+    cout << duration.count() << "ms\t\t" << nodesVisited << "\t\t";;
 
     return Result(path, driveTimes[toNode]);
 }

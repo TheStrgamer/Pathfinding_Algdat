@@ -7,6 +7,8 @@
 #include <sstream>
 #include <unordered_map>
 
+#include <mutex>
+#include <thread>
 using namespace std;
 
 
@@ -29,7 +31,7 @@ public:
     int num;
     vector<Edge> edges;
 
-    unordered_map<int,long long> precomputedData;
+    unordered_map<int,int> precomputedData;
 
     Node() {}
     Node(const int num) {
@@ -46,6 +48,7 @@ public:
         precomputedData[landmark] = time;
     }
 };
+
 inline vector<Node> readNodes(const string& filename) {
     const auto start_time = chrono::high_resolution_clock::now();
     cout << "Reading nodes from file: " << filename << endl;
@@ -63,14 +66,14 @@ inline vector<Node> readNodes(const string& filename) {
 
     int num;
     float longitude, latitude;
-    string line;
-    while (getline(file, line)) {
-        stringstream ss(line);
-        ss >> num >> latitude >> longitude;
-        if (num >= nodes.size()) {
-            nodes.resize(num + 1);
+    char line[256];
+
+    while (file.getline(line, sizeof(line))) {
+        if (sscanf(line, "%d %f %f", &num, &latitude, &longitude) == 3) {
+            if (num < nodes.size()) {
+                nodes[num] = Node(num);
+            }
         }
-        nodes[num] = Node(num);
     }
 
     const auto end_time = chrono::high_resolution_clock::now();
@@ -96,17 +99,19 @@ vector<Edge> readEdges(const string& filename, vector<Node>& nodes, const bool r
     vector<Edge> edges;
     edges.reserve(edgeCount);
 
-    string line;
     int start, end, driveTime, dist, speed;
-    while (getline(file, line)) {
-        stringstream ss(line);
-        ss >> start >> end >> driveTime >> dist >> speed;
-        if (reversed) {
-            swap(start, end);
+    char line[256];
+    while(file.getline(line, sizeof(line))) {
+        if (sscanf(line, "%d %d %d %d %d", &start, &end, &driveTime, &dist, &speed) == 5) {
+            if (start < nodes.size() && end < nodes.size()) {
+                if (reversed) {
+                    edges.emplace_back(end, start, driveTime);
+                } else {
+                    edges.emplace_back(start, end, driveTime);
+                }
+            }
+            nodes[start].addEdge(edges.back());
         }
-        Edge edge(start, end, driveTime);
-        nodes[start].addEdge(edge);
-        edges.push_back(edge);
     }
 
     cout << edges.size() << " edges added" << endl;
