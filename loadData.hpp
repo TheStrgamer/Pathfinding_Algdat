@@ -2,11 +2,9 @@
 #include <fstream>
 #include <vector>
 #include <string>
-#include <unordered_map>
-#include <queue>
 #include <limits>
-#include <algorithm>
 #include <chrono>
+#include <sstream>
 
 using namespace std;
 
@@ -39,11 +37,12 @@ public:
         edges.push_back(edge);
     }
 };
-
-unordered_map<int, Node> readNodes(const string& filename) {
+vector<Node> readNodes(const string& filename) {
+    const auto start_time = chrono::high_resolution_clock::now();
     cout << "Reading nodes from file: " << filename << endl;
-    ifstream file(filename);
-    if (!file) {
+
+    ifstream file(filename, ios::in | ios::binary);
+    if (!file.is_open()) {
         cerr << "Error opening file: " << filename << endl;
         return {};
     }
@@ -51,25 +50,33 @@ unordered_map<int, Node> readNodes(const string& filename) {
     int nodeCount;
     file >> nodeCount;
     file.ignore(numeric_limits<streamsize>::max(), '\n');
-    unordered_map<int, Node> nodes;
+    vector<Node> nodes(nodeCount);
 
     int num;
     float longitude, latitude;
-    for (int i = 0; i < nodeCount; i++) {
-        if (!(file >> num >> latitude >> longitude)) {
-            cerr << "Error reading node data at line " << i + 2 << endl;
-            break;
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        ss >> num >> latitude >> longitude;
+        if (num >= nodes.size()) {
+            nodes.resize(num + 1);
         }
         nodes[num] = Node(num);
     }
-    cout << nodes.size() << " Nodes added" << endl;
+
+    const auto end_time = chrono::high_resolution_clock::now();
+    const auto duration = chrono::duration_cast<chrono::milliseconds>(end_time - start_time);
+    cout << "Read " << nodes.size() << " nodes" << endl;
+    cout << "Time taken: " << duration.count() << " milliseconds" << endl;
     return nodes;
 }
 
-vector<Edge> readEdges(const string& filename, unordered_map<int, Node>& nodes) {
+vector<Edge> readEdges(const string& filename, vector<Node>& nodes) {
+    const auto start_time = chrono::high_resolution_clock::now();
     cout << "Reading edges from file: " << filename << endl;
-    ifstream file(filename);
-    if (!file) {
+
+    ifstream file(filename, ios::in | ios::binary);
+    if (!file.is_open()) {
         cerr << "Error opening file: " << filename << endl;
         return {};
     }
@@ -78,21 +85,22 @@ vector<Edge> readEdges(const string& filename, unordered_map<int, Node>& nodes) 
     file >> edgeCount;
     file.ignore(numeric_limits<streamsize>::max(), '\n');
     vector<Edge> edges;
+    edges.reserve(edgeCount);
 
-    int start, end, driveTime;
-    int dist, speed;
-    for (int i = 0; i < edgeCount; i++) {
-        if (!(file >> start >> end >> driveTime >> dist >> speed)) {
-            cerr << "Error reading edge data at line " << i + 2 << endl;
-            break;
-        }
-        if (nodes.find(start) != nodes.end() && nodes.find(end) != nodes.end()) {
-            Edge edge(start, end, driveTime);
-            nodes[start].addEdge(edge);
-            edges.push_back(edge);
-        }
+    string line;
+    int start, end, driveTime, dist, speed;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        ss >> start >> end >> driveTime >> dist >> speed;
+        Edge edge(start, end, driveTime);
+        nodes[start].addEdge(edge);
+        edges.push_back(edge);
     }
-    cout << edges.size() << " Edges added" << endl;
+
+    cout << edges.size() << " edges added" << endl;
+    const auto end_time = chrono::high_resolution_clock::now();
+    const auto duration = chrono::duration_cast<chrono::milliseconds>(end_time - start_time);
+    cout << "Time taken: " << duration.count() << " milliseconds" << endl;
     return edges;
 }
 
@@ -130,4 +138,25 @@ vector<int> getTestCase(const int testNumber) {
       cerr << "Invalid test number. Returning default case." << endl;
     return {0, 0};
   }
+}
+
+vector<int> getTestCaseIsland(const int testNumber) {
+    switch (testNumber) {
+        case 1:  return {0, 112776};
+        case 2:  return {10234, 54321};
+        case 3:  return {43210, 8765};
+        case 4:  return {12345, 67890};
+        case 5:  return {6789, 9876};
+        case 6:  return {13579, 24680};
+        case 7:  return {11111, 22222};
+        case 8:  return {33333, 44444};
+        case 9:  return {55555, 66666};
+        case 10: return {77777, 88888};
+        case 11: return {99999, 112776};
+        case 12: return {11000, 22000};
+        case 13: return {30000, 45000};
+        default:
+            cerr << "Invalid test number. Returning default case." << endl;
+        return {0, 0};
+    }
 }

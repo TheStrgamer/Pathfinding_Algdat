@@ -15,16 +15,16 @@ auto compare = [](const pair<long long, int>& a, const pair<long long, int>& b) 
     return a.first > b.first;
 };
 
-Result dijkstraShortestPath(unordered_map<int, Node>& nodes, const int fromNode, const int toNode) {
+Result dijkstraShortestPath(vector<Node>& nodes, const int fromNode, const int toNode) {
     const auto setup_start = chrono::high_resolution_clock::now();
 
-    unordered_map<int, long long> driveTimes;
-    unordered_map<int, int> prev;
+    vector<long long> driveTimes;
+    vector<int> prev;
     priority_queue<pair<long long, int>, vector<pair<long long, int>>, decltype(compare)> queue(compare);
 
-    for (const auto& [num, node] : nodes) {
-        driveTimes[num] = numeric_limits<long long>::max();
-        prev[num] = -1;
+    for (int i = 0; i < nodes.size(); i++) {
+        driveTimes.push_back(numeric_limits<long long>::max());
+        prev.push_back(-1);
     }
 
     cout << endl << "Calculating shortest path from " << fromNode << " to " << toNode << endl;
@@ -36,7 +36,7 @@ Result dijkstraShortestPath(unordered_map<int, Node>& nodes, const int fromNode,
 
     while (!queue.empty()) {
         const long long currentTime = queue.top().first;
-        int currentNode = queue.top().second;
+        const int currentNode = queue.top().second;
         nodesVisited++;
         queue.pop();
 
@@ -74,11 +74,87 @@ Result dijkstraShortestPath(unordered_map<int, Node>& nodes, const int fromNode,
     return Result(path, driveTimes[toNode]);
 }
 
+
+void precomputeDriveTimes(const vector<Node>& nodes, const vector<int>& interestPoints, const string& outfilepath) {
+    const auto start = chrono::high_resolution_clock::now();
+    cout << "Precomputing drive times" << endl;
+
+    ofstream file(outfilepath);
+    if (!file.is_open()) {
+        cerr << "Error opening file: " << outfilepath << endl;
+        return;
+    }
+    for (int landmark : interestPoints) {
+        vector<long long> driveTimes(nodes.size(), numeric_limits<long long>::max());
+        driveTimes[landmark] = 0;
+        priority_queue<pair<long long, int>, vector<pair<long long, int>>, decltype(compare)> queue(compare);
+        queue.emplace(0, landmark);
+
+        while (!queue.empty()) {
+            const long long currentTime = queue.top().first;
+            const int currentNode = queue.top().second;
+            queue.pop();
+
+            for (const Edge& edge : nodes[currentNode].edges) {
+                int neighbor = edge.endNode;
+                long long newTime = currentTime + edge.driveTime;
+
+                if (newTime < driveTimes[neighbor]) {
+                    driveTimes[neighbor] = newTime;
+                    queue.emplace(newTime, neighbor);
+                }
+            }
+        }
+        file << landmark;
+        for (const long long time : driveTimes) {
+            file << " " << time;
+        }
+        file << "\n";
+    }
+
+    const auto end = chrono::high_resolution_clock::now();
+    const auto duration = chrono::duration_cast<chrono::milliseconds>(end - start);
+    cout << "Precomputation completed in " << duration.count() << " milliseconds" << endl;
+    file.close();
+}
+
+vector<vector<long long>> loadPrecomputedData(const string& filepath, int landmarkCount, int nodeCount) {
+    vector<vector<long long>> precomputedData(landmarkCount, vector<long long>(nodeCount, numeric_limits<long long>::max()));
+
+    ifstream file(filepath);
+    if (!file.is_open()) {
+        cerr << "Error opening precomputed data file: " << filepath << endl;
+        return precomputedData;
+    }
+    string line;
+    int landmarkIndex = 0;
+    while (getline(file, line) && landmarkIndex < landmarkCount) {
+        stringstream ss(line);
+        int landmark;
+        ss >> landmark;
+
+        for (int i = 0; i < nodeCount; ++i) {
+            long long time;
+            if (ss >> time) {
+                precomputedData[landmarkIndex][i] = time;
+            } else {
+                precomputedData[landmarkIndex][i] = numeric_limits<long long>::max();
+            }
+        }
+        landmarkIndex++;
+    }
+
+    file.close();
+    return precomputedData;
+}
+
+
 int main() {
     const string nodesFile = "noder.txt";
     const string edgesFile = "kanter.txt";
 
-    unordered_map<int, Node> nodes = readNodes(nodesFile);
+
+    vector<Node> nodes = readNodes(nodesFile);
     if (nodes.empty()) {
         return 1;
     }
@@ -86,6 +162,8 @@ int main() {
     if (edges.empty()) {
         return 1;
     }
+
+    //precomputeDriveTimes(nodes, { 435,8777,12356 }, "driveTimes.txt");
 
     for (int i = 1; i <= 13; i++) {
         const vector<int> toAndFrom = getTestCase(i);
