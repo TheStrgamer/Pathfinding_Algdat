@@ -5,6 +5,7 @@
 #include <limits>
 #include <chrono>
 #include <sstream>
+#include <unordered_map>
 
 using namespace std;
 
@@ -28,6 +29,8 @@ public:
     int num;
     vector<Edge> edges;
 
+    unordered_map<int,long long> precomputedData;
+
     Node() {}
     Node(const int num) {
         this->num = num;
@@ -36,8 +39,14 @@ public:
     void addEdge(const Edge& edge) {
         edges.push_back(edge);
     }
+    void clearEdges() {
+        edges.clear();
+    }
+    void addPrecomputedData(const int landmark, const long long time) {
+        precomputedData[landmark] = time;
+    }
 };
-vector<Node> readNodes(const string& filename) {
+inline vector<Node> readNodes(const string& filename) {
     const auto start_time = chrono::high_resolution_clock::now();
     cout << "Reading nodes from file: " << filename << endl;
 
@@ -71,7 +80,7 @@ vector<Node> readNodes(const string& filename) {
     return nodes;
 }
 
-vector<Edge> readEdges(const string& filename, vector<Node>& nodes) {
+vector<Edge> readEdges(const string& filename, vector<Node>& nodes, const bool reversed = false) {
     const auto start_time = chrono::high_resolution_clock::now();
     cout << "Reading edges from file: " << filename << endl;
 
@@ -92,6 +101,9 @@ vector<Edge> readEdges(const string& filename, vector<Node>& nodes) {
     while (getline(file, line)) {
         stringstream ss(line);
         ss >> start >> end >> driveTime >> dist >> speed;
+        if (reversed) {
+            swap(start, end);
+        }
         Edge edge(start, end, driveTime);
         nodes[start].addEdge(edge);
         edges.push_back(edge);
@@ -104,22 +116,7 @@ vector<Edge> readEdges(const string& filename, vector<Node>& nodes) {
     return edges;
 }
 
-struct Result {
-    vector<int> path;
-    long long time;
-    int hours;
-    int minutes;
-    int seconds;
-    Result(const vector<int> &path, const int time) {
-        this->path = path;
-        this->time = time;
-        this->hours = (time/100) / 3600;
-        this->minutes = ((time/100) % 3600) / 60;
-        this->seconds = (time/100) % 60;
-    }
-};
-
-vector<int> getTestCase(const int testNumber) {
+inline vector<int> getTestCase(const int testNumber) {
   switch (testNumber) {
     case 1: return {2800567, 7705656};  // Kårvåg–Gjemnes
     case 2: return {7705656, 2800567};  // Gjemnes–Kårvåg
@@ -140,7 +137,13 @@ vector<int> getTestCase(const int testNumber) {
   }
 }
 
-vector<int> getTestCaseIsland(const int testNumber) {
+inline void clearNodeEdges(vector<Node>& nodes) {
+    for (Node& node : nodes) {
+        node.clearEdges();
+    }
+}
+
+inline vector<int> getTestCaseIsland(const int testNumber) {
     switch (testNumber) {
         case 1:  return {0, 112776};
         case 2:  return {10234, 54321};
