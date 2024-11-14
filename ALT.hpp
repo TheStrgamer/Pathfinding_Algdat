@@ -14,15 +14,15 @@ auto alt_compare = [](const pair<int, int>& a, const pair<int, int>& b) {
     return a.first > b.first;
 };
 
-inline int calculateALTHeuristic(int currentNode, int toNode, const vector<int>& landmarks,
-                                  const vector<vector<int>>& fromLandmarks, const vector<vector<int>>& toLandmarks) {
+inline int calculateALTHeuristic(const int currentNode, const int toNode, const vector<int>& landmarks,
+                                 const vector<vector<int>>& fromLandmarks, const vector<vector<int>>& toLandmarks) {
     int maxHeuristic = 0;
 
     for (int i = 0; i < landmarks.size(); i++) {
-        int lToTarget = fromLandmarks[i][toNode];
-        int lToCurrent = fromLandmarks[i][currentNode];
-        int currentToL = toLandmarks[i][currentNode];
-        int targetToL = toLandmarks[i][toNode];
+        const int lToTarget = fromLandmarks[i][toNode];
+        const int lToCurrent = fromLandmarks[i][currentNode];
+        const int currentToL = toLandmarks[i][currentNode];
+        const int targetToL = toLandmarks[i][toNode];
 
         int estimate1 = max(0, lToTarget - lToCurrent);
         int estimate2 = currentToL - targetToL;
@@ -33,7 +33,6 @@ inline int calculateALTHeuristic(int currentNode, int toNode, const vector<int>&
 
     return maxHeuristic;
 }
-
 
 inline Result altShortestPath(vector<Node>& nodes, const int fromNode, const int toNode,
                               const vector<int>& landmarks, const vector<vector<int>>& fromLandmarks,
@@ -59,7 +58,7 @@ inline Result altShortestPath(vector<Node>& nodes, const int fromNode, const int
 
         for (const Edge& edge : nodes[currentNode].edges) {
             int neighbor = edge.endNode;
-            int newTime = currentTime + edge.driveTime;
+            const int newTime = currentTime + edge.driveTime;
 
             if (newTime < driveTimes[neighbor]) {
                 driveTimes[neighbor] = newTime;
