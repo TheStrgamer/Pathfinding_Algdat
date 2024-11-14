@@ -29,13 +29,14 @@ public:
 class Node {
 public:
     int num;
+    double longitude;
+    double latitude;
     vector<Edge> edges;
-
-    unordered_map<int,int> precomputedData;
-
     Node() {}
-    Node(const int num) {
+    Node(const int num, const double longitude, const double latitude) {
         this->num = num;
+        this->latitude = latitude;
+        this->longitude = longitude;
     }
 
     void addEdge(const Edge& edge) {
@@ -43,9 +44,6 @@ public:
     }
     void clearEdges() {
         edges.clear();
-    }
-    void addPrecomputedData(const int landmark, const long long time) {
-        precomputedData[landmark] = time;
     }
 };
 
@@ -71,7 +69,7 @@ inline vector<Node> readNodes(const string& filename) {
     while (file.getline(line, sizeof(line))) {
         if (sscanf(line, "%d %f %f", &num, &latitude, &longitude) == 3) {
             if (num < nodes.size()) {
-                nodes[num] = Node(num);
+                nodes[num] = Node(num, longitude, latitude);
             }
         }
     }
@@ -110,7 +108,11 @@ vector<Edge> readEdges(const string& filename, vector<Node>& nodes, const bool r
                     edges.emplace_back(start, end, driveTime);
                 }
             }
-            nodes[start].addEdge(edges.back());
+            if (reversed) {
+                nodes[end].addEdge(edges.back());
+            } else {
+                nodes[start].addEdge(edges.back());
+            }
         }
     }
 
@@ -150,19 +152,19 @@ inline void clearNodeEdges(vector<Node>& nodes) {
 
 inline vector<int> getTestCaseIsland(const int testNumber) {
     switch (testNumber) {
-        case 1:  return {0, 112776};
+        case 1:  return {0, 435};
         case 2:  return {10234, 54321};
         case 3:  return {43210, 8765};
         case 4:  return {12345, 67890};
         case 5:  return {6789, 9876};
         case 6:  return {13579, 24680};
-        case 7:  return {11111, 22222};
-        case 8:  return {33333, 44444};
-        case 9:  return {55555, 66666};
+        case 7:  return {11, 23456};
+        case 8:  return {33664, 4484};
+        case 9:  return {55555, 69};
         case 10: return {77777, 88888};
-        case 11: return {99999, 112776};
+        case 11: return {9999, 112776};
         case 12: return {11000, 22000};
-        case 13: return {30000, 45000};
+        case 13: return {3000, 95000};
         default:
             cerr << "Invalid test number. Returning default case." << endl;
         return {0, 0};

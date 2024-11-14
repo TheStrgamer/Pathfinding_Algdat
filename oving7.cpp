@@ -6,8 +6,22 @@
 #include "loadData.hpp"
 #include "dijkstra.hpp"
 #include "precompute.hpp"
+#include "ALT.hpp"
+
+#include <numeric>
+
 
 using namespace std;
+
+bool verifyPrecomputedDataExists(const string& filename) {
+    ifstream file(filename, ios::in | ios::binary);
+    if (!file.is_open()) {
+        return false;
+    }
+    file.close();
+    return true;
+}
+
 
 int main() {
     const string nodesFile = "noder.txt";
@@ -17,27 +31,65 @@ int main() {
     if (nodes.empty()) {
         return 1;
     }
-    const vector<Edge> edges = readEdges(edgesFile, nodes);
-    if (edges.empty()) {
-        return 1;
+
+    vector<int> landmarks = { 1682,7900879,12356,880090};
+    cout << "Landmarks: " << landmarks[0] << " " << landmarks[1] << " " << landmarks[2] << " " << landmarks[3] << endl;
+
+    if (!verifyPrecomputedDataExists("driveTimesTo.dat") || !verifyPrecomputedDataExists("driveTimesFrom.dat") || false) {
+        cout << "Precomputing drive times to landmarks" << endl;
+        vector<Edge> edges = readEdges(edgesFile, nodes, true);
+        if (edges.empty()) {
+            return 1;
+        }
+        precomputeDriveTimesTo(nodes, landmarks, "driveTimesTo.dat");
+        clearNodeEdges(nodes);
+        cout << "Precomputing drive times from landmarks" << endl;
+
+        edges = readEdges(edgesFile, nodes);
+        if (edges.empty()) {
+            return 1;
+        }
+        precomputeDriveTimesFrom(nodes, landmarks, "driveTimesFrom.dat");
+    }
+    else {
+        const vector<Edge> edges = readEdges(edgesFile, nodes);
+        if (edges.empty()) {
+            return 1;
+        }
     }
 
-    //precomputeDriveTimes(nodes, { 435,8777,12356 }, "driveTimes.txt");
+    vector<vector<int>> fromLandmarks;
+    vector<vector<int>> toLandmarks;
+    loadPrecomputedData("driveTimesFrom.dat", "driveTimesTo.dat", landmarks.size(), nodes.size(), fromLandmarks, toLandmarks);
 
-    cout << "From node:\tTo node:\tCalculate time\tNodes visited\tNodes in path:\tDrive time:" << endl;
+    cout << endl << "Algorithm\tFrom node:\tTo node:\tCalculate time\tNodes visited\tNodes in path:\tDrive time:" << endl;
     for (int i = 1; i <= 13; i++) {
         const vector<int> toAndFrom = getTestCase(i);
         const int fromNode = toAndFrom[0];
         const int toNode = toAndFrom[1];
-        cout << fromNode << "\t\t" << toNode << "\t\t";
+        cout << "ALT\t\t" << fromNode << "\t\t" << toNode << "\t\t";
 
-        const Result result = dijkstraShortestPath(nodes, fromNode, toNode);
+        Result result = altShortestPath(nodes, fromNode, toNode, landmarks, fromLandmarks, toLandmarks);
         if (result.time == -1) {
             cout << "No path found" << endl;
         } else {
             cout << result.path.size() << "\t\t";
             cout  << result.hours << ":" << result.minutes << ":" << result.seconds << endl;
         }
+
+        cout << "Dijkstra\t" << fromNode << "\t\t" << toNode << "\t\t";
+
+        result = dijkstraShortestPath(nodes, fromNode, toNode);
+        if (result.time == -1) {
+            cout << "No path found" << endl;
+        } else {
+            cout << result.path.size() << "\t\t";
+            cout  << result.hours << ":" << result.minutes << ":" << result.seconds << endl;
+        }
+        cout << endl;
+
+
+
     }
 
     return 0;
