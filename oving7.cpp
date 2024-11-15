@@ -10,6 +10,66 @@
 
 using namespace std;
 
+void exportPath(const vector<int>& path, const vector<Node>& nodes, const string& filename = "path.txt") {
+    ofstream file(filename, ios::out);
+    if (!file.is_open()) {
+        cerr << "Error opening file: path.txt" << endl;
+        return;
+    }
+    for (int node : path) {
+        file << node << " " << nodes[node].longitude << " " << nodes[node].latitude << endl;
+    }
+    file.close();
+}
+
+void exportPathVector(const vector<Result>& results, const vector<Node>& nodes, const string& filename = "path.txt") {
+    ofstream file(filename, ios::out);
+    if (!file.is_open()) {
+        cerr << "Error opening file: path.txt" << endl;
+        return;
+    }
+    for (const Result& result : results) {
+        for (const int node : result.path) {
+            file << node << " " << nodes[node].longitude << " " << nodes[node].latitude << endl;
+        }
+        file << endl;
+    }
+    file.close();
+}
+
+void printResults(const vector<Result>& results) {
+    for (const Result& result : results) {
+        const int node = result.path.back();
+        cout << "Node " << node  << "\tDrive time: " << result.hours << ":" << result.minutes << ":" << result.seconds << endl;
+    }
+}
+vector<int> findPointsOfInterestByType(const vector<PointOfInterest>& points, string type) {
+    int code;
+    if (type == "Stedsnavn") {
+        code = 1;
+    } else if (type == "Bensinstasjon") {
+        code = 2;
+    } else if (type == "Ladestasjon") {
+        code = 4;
+    } else if (type == "Spisested") {
+        code = 8;
+    } else if (type == "Drikkested") {
+        code = 16;
+    } else if (type == "Overnattingssted") {
+        code = 32;
+    } else {
+        return {};
+    }
+
+    vector<int> filteredPoints;
+    for (const PointOfInterest& point : points) {
+        if (point.type & code) {
+            filteredPoints.push_back(point.num);
+        }
+    }
+    return filteredPoints;
+}
+
 bool verifyPrecomputedDataExists(const string& filename) {
     ifstream file(filename, ios::in | ios::binary);
     if (!file.is_open()) {
@@ -22,6 +82,8 @@ bool verifyPrecomputedDataExists(const string& filename) {
 int main() {
     const string nodesFile = "noder.txt";
     const string edgesFile = "kanter.txt";
+
+    bool exportPaths = true; // Set to true to export paths to txt files to view with pathViewer.html
 
     vector<Node> nodes = readNodes(nodesFile);
     if (nodes.empty()) {return 1;}
@@ -66,7 +128,10 @@ int main() {
             cout << result.path.size() << "\t\t";
             cout  << result.hours << ":" << result.minutes << ":" << result.seconds << endl;
         }
-
+        if (exportPaths) {
+            string filename = "Path_ALTPath" + to_string(i) + ".txt";
+            exportPath(result.path, nodes, filename);
+        }
         cout << "Dijkstra\t" << fromNode << "\t\t" << toNode << "\t\t";
         result = dijkstraShortestPath(nodes, fromNode, toNode);
         if (result.time == -1) {
@@ -75,7 +140,45 @@ int main() {
             cout << result.path.size() << "\t\t";
             cout  << result.hours << ":" << result.minutes << ":" << result.seconds << endl;
         }
+        if (exportPaths) {
+            string filename = "Path_DijkstraPath" + to_string(i) + ".txt";
+            exportPath(result.path, nodes, filename);
+        }
+
         cout << "---------------------------------------------------------------------------------------------------------" << endl;
     }
+    const vector<PointOfInterest> points = readPointsOfInterest("interessepkt.txt");
+
+    cout << endl << "Finding 4 charging stations near Levanger" << endl;
+    if (points.empty()) {return 1;}
+    vector<int> goalPoints = findPointsOfInterestByType(points, "Ladestasjon");
+    int Levanger = 2106148;
+    const vector<Result> nearestChargingStations = dijkstraFindNearestInterestpoints(nodes,Levanger, goalPoints, 4);
+    printResults(nearestChargingStations);
+
+
+    cout << endl << "Finding 4 drinking places near Gløshaugen" << endl;
+    goalPoints = findPointsOfInterestByType(points, "Drikkested");
+    int Gløshaugen = 2001238;
+    const vector<Result> nearestDrinkingPlaces = dijkstraFindNearestInterestpoints(nodes, Gløshaugen, goalPoints, 4);
+    printResults(nearestDrinkingPlaces);
+
+    cout << endl << "Finding 4 eating places near Åre Björnen" << endl;
+    int AreBjornen = 790843;
+    goalPoints = findPointsOfInterestByType(points, "Spisested");
+    const vector<Result> nearestEatingPlaces = dijkstraFindNearestInterestpoints(nodes, AreBjornen, goalPoints, 4);
+    printResults(nearestEatingPlaces);
+
+    if (exportPaths) {
+        string filename = "Path_ChargingStationLevanger.txt";
+        exportPathVector(nearestChargingStations, nodes, filename);
+
+        filename = "Path_DrinkingPlaceGloshaugen.txt";
+        exportPathVector(nearestDrinkingPlaces, nodes, filename);
+
+        filename = "Path_EatingPlacePathsAreBjornen.txt";
+        exportPathVector(nearestEatingPlaces, nodes, filename);
+    }
+
     return 0;
 }

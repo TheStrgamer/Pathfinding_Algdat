@@ -170,3 +170,31 @@ inline vector<int> getTestCaseIsland(const int testNumber) {
         return {0, 0};
     }
 }
+
+class PointOfInterest {
+    public:
+    int num;
+    int type;
+};
+
+inline vector<PointOfInterest> readPointsOfInterest(const string& filename) {
+    ifstream file(filename, ios::in | ios::binary);
+    if (!file.is_open()) {
+        cerr << "Error opening file: " << filename << endl;
+        return {};
+    }
+    int num, type;
+    vector<PointOfInterest> points;
+    string line;
+    while (getline(file, line)) {
+        string name;
+        stringstream ss(line);
+        ss >> num >> type;
+        getline(ss >> ws, name);
+        if (!name.empty() && name.front() == '"') name.erase(0, 1);
+        if (!name.empty() && name.back() == '"') name.pop_back();
+        points.push_back({num, type});
+    }
+    return points;
+
+}
