@@ -3,10 +3,12 @@
 #include <vector>
 #include <string>
 #include <chrono>
+#include <iomanip>
 #include "loadData.hpp"
 #include "dijkstra.hpp"
 #include "precompute.hpp"
 #include "ALT.hpp"
+
 
 using namespace std;
 
@@ -40,7 +42,10 @@ void exportPathVector(const vector<Result>& results, const vector<Node>& nodes, 
 void printResults(const vector<Result>& results) {
     for (const Result& result : results) {
         const int node = result.path.back();
-        cout << "Node " << node  << "\tDrive time: " << result.hours << ":" << result.minutes << ":" << result.seconds << endl;
+        cout << "Node " << node  << "\tDrive time: ";
+        cout << result.hours << ":"
+             << setw(2) << setfill('0') << result.minutes << ":"
+             << setw(2) << setfill('0') << result.seconds << endl;
     }
 }
 vector<int> findPointsOfInterestByType(const vector<PointOfInterest>& points, string type) {
@@ -79,11 +84,45 @@ bool verifyPrecomputedDataExists(const string& filename) {
     return true;
 }
 
+void doTestCases(const vector<int> toAndFrom, const int i, vector<Node>& nodes, const vector<int>& landmarks, const vector<vector<int>>& fromLandmarks, const vector<vector<int>>& toLandmarks, bool exportPaths) {
+    const int fromNode = toAndFrom[0];
+    const int toNode = toAndFrom[1];
+
+    cout << "ALT\t\t" << fromNode << "\t\t" << toNode << "\t\t";
+    Result result = altShortestPath(nodes, fromNode, toNode, landmarks, fromLandmarks, toLandmarks);
+    if (result.time == -1) {
+        cout << "No path found" << endl;
+    } else {
+        cout << result.path.size() << "\t\t";
+        cout << result.hours << ":"
+            << setw(2) << setfill('0') << result.minutes << ":"
+            << setw(2) << setfill('0') << result.seconds << endl;
+    }
+    if (exportPaths) {
+        string filename = "Path_ALTPath" + to_string(i) + ".txt";
+        exportPath(result.path, nodes, filename);
+    }
+    cout << "Dijkstra\t" << fromNode << "\t\t" << toNode << "\t\t";
+    result = dijkstraShortestPath(nodes, fromNode, toNode);
+    if (result.time == -1) {
+        cout << "No path found" << endl;
+    } else {
+        cout << result.path.size() << "\t\t";
+        cout << result.hours << ":"
+            << setw(2) << setfill('0') << result.minutes << ":"
+            << setw(2) << setfill('0') << result.seconds << endl;
+    }
+    if (exportPaths) {
+        string filename = "Path_DijkstraPath" + to_string(i) + ".txt";
+        exportPath(result.path, nodes, filename);
+    }
+    cout << "---------------------------------------------------------------------------------------------------------" << endl;
+}
+
 int main() {
     const string nodesFile = "noder.txt";
     const string edgesFile = "kanter.txt";
 
-    bool exportPaths = true; // Set to true to export paths to txt files to view with pathViewer.html
 
     vector<Node> nodes = readNodes(nodesFile);
     if (nodes.empty()) {return 1;}
@@ -114,38 +153,19 @@ int main() {
     vector<vector<int>> toLandmarks;
     loadPrecomputedData("driveTimesFrom.dat", "driveTimesTo.dat", landmarks.size(), nodes.size(), fromLandmarks, toLandmarks);
 
+//    cout << endl << "Algorithm\tFrom node:\tTo node:\tCalculate time\tNodes visited\tNodes in path:\tDrive time:" << endl;
+//    for (int i = 1; i<=13; i++) {
+//        bool exportPaths = false; // Set to true to export paths to txt files to view with pathViewer.html
+
+//        const vector<int> toAndFrom = getTestCase(i);
+//        doTestCases(toAndFrom, i, nodes, landmarks, fromLandmarks, toLandmarks, exportPaths);
+//    }
     cout << endl << "Algorithm\tFrom node:\tTo node:\tCalculate time\tNodes visited\tNodes in path:\tDrive time:" << endl;
-    for (int i = 1; i <= 13; i++) {
-        const vector<int> toAndFrom = getTestCase(i);
-        const int fromNode = toAndFrom[0];
-        const int toNode = toAndFrom[1];
 
-        cout << "ALT\t\t" << fromNode << "\t\t" << toNode << "\t\t";
-        Result result = altShortestPath(nodes, fromNode, toNode, landmarks, fromLandmarks, toLandmarks);
-        if (result.time == -1) {
-            cout << "No path found" << endl;
-        } else {
-            cout << result.path.size() << "\t\t";
-            cout  << result.hours << ":" << result.minutes << ":" << result.seconds << endl;
-        }
-        if (exportPaths) {
-            string filename = "Path_ALTPath" + to_string(i) + ".txt";
-            exportPath(result.path, nodes, filename);
-        }
-        cout << "Dijkstra\t" << fromNode << "\t\t" << toNode << "\t\t";
-        result = dijkstraShortestPath(nodes, fromNode, toNode);
-        if (result.time == -1) {
-            cout << "No path found" << endl;
-        } else {
-            cout << result.path.size() << "\t\t";
-            cout  << result.hours << ":" << result.minutes << ":" << result.seconds << endl;
-        }
-        if (exportPaths) {
-            string filename = "Path_DijkstraPath" + to_string(i) + ".txt";
-            exportPath(result.path, nodes, filename);
-        }
-
-        cout << "---------------------------------------------------------------------------------------------------------" << endl;
+    bool exportPaths = true; // Set to true to export paths to txt files to view with pathViewer.html
+    for (int i = 1; i <= 4; i++) {
+        const vector<int> toAndFrom = getTaskPaths(i);
+        doTestCases(toAndFrom, i, nodes, landmarks, fromLandmarks, toLandmarks, exportPaths);
     }
     const vector<PointOfInterest> points = readPointsOfInterest("interessepkt.txt");
 

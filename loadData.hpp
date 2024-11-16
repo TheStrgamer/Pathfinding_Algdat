@@ -143,6 +143,18 @@ inline vector<int> getTestCase(const int testNumber) {
     return {0, 0};
   }
 }
+inline vector<int> getTaskPaths(const int testNumber) {
+    switch (testNumber) {
+        case 1: return {2001238, 1987066};  // Gløshaugen–Otilienbor
+        case 2: return {1987066,2001238};   // Otilienbor–Gløshaugen
+        case 3: return {2486870, 5394165};  // Fosnavåg–Espoo
+        case 4: return {5394165, 2486870};  // Espoo–Fosnavåg
+
+        default:
+            cerr << "Invalid test number. Returning default case." << endl;
+        return {0, 0};
+    }
+}
 
 inline void clearNodeEdges(vector<Node>& nodes) {
     for (Node& node : nodes) {
